@@ -14,13 +14,11 @@ import pylab as plt
 path = 'results/'
 
 
-no_runs=60
-notps=47
-acc_mat=np.zeros((notps,no_runs,2,2))
+no_runs=50
+acc_mat=np.zeros((no_runs,2))
 for permi in range(2):
-    for clinicali in range(2):
-        for windowi in range(notps):
-            search_str=path + "**/result_p"+str(permi)+"_clinical"+str(clinicali)+"_window" +str(windowi+1) + "_*.mat"
+
+            search_str=path + "**/result_p"+str(permi)+"_clinical1_window0_*.mat"
             
             files = [f for f in glob.glob(search_str, recursive=True)]
             
@@ -28,7 +26,7 @@ for permi in range(2):
 
                 mat = sio.loadmat(files[fi])
                 acc=mat['vect']
-                acc_mat[windowi,fi,clinicali,permi]=acc
+                acc_mat[fi,permi]=acc
                 
 
 sio.savemat("acc.mat", {'vect':acc_mat})        

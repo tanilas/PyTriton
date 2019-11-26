@@ -7,13 +7,9 @@ filepath="acc.mat"
 mat = sio.loadmat(filepath)
 arr=mat['vect']
 
-clini=1
-permi=1
-sig1=np.mean(arr[:,:,1,0],axis=1)
-ssig1=np.std(arr[:,:,1,0],axis=1)
-sig2=np.mean(arr[:,:,1,1],axis=1)
-ssig2=np.std(arr[:,:,1,1],axis=1)
-plt.plot(sig1,"b");plt.plot(sig1+ssig1,"b:")
-plt.plot(sig2,"r");plt.plot(sig2+ssig2,"r:")
+print("Mean 0: "+str(np.mean(arr[:,0])))
+print("Mean 1: "+str(np.mean(arr[:,1])))
+plt.plot(arr[:,0],"b")
+plt.plot(arr[:,1],"r")
 
 plt.show()

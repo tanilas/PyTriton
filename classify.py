@@ -18,4 +18,4 @@ print("Window chosen: "+str(args.window))
 print("Permutation chosen: "+str(args.permutation))
 print("Clinical data chosen: "+str(args.clinical_data))
 
-classify(args.permutation, args.clinical_data,args.window)
+classify(args.permutation)

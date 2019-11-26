@@ -16,14 +16,14 @@ from scipy import stats
 import argparse
 
 
-def classify(permutation=0):
+def classify(permutation=0,clinical_data=1,timewindow=1):
     #select file to analyse
     print("Is permutation: " + str(permutation))
-    
+    print("Including clinical data: "+str(clinical_data))
+    print("Selected time window: "+str(timewindow))
     
     #filename='fmri_rem12_clinical_48xFMRIpca_multipTRWsliding_windowavg.mat' # filename
-    #filename='test_31_rem12_clinical_2xISC.mat'
-    filename='test_rem12_clinical.mat'
+    filename='test_31_rem12_clinical_2xISC.mat'
     path='/m/nbe/scratch/psykoosi/Jonatans_folder/Deep_NN/Triton_scripts/NN_files/'
 
     filepath=path+filename
@@ -36,8 +36,8 @@ def classify(permutation=0):
     X[np.isnan(X)]=0
     X=stats.zscore(X)
     X[np.isnan(X)]=0
-    
-    X=0.0*np.random.randn(X.shape[0],X.shape[1])+Y*0.1;
+    import pdb; pdb.set_trace()
+    #X=0.0*np.random.randn(X.shape[0],X.shape[1])+Y;
     #import pdb; pdb.set_trace()
     modality_index=np.array(f['modality_index']).T
     clin_var_n=np.array(f['clinical_var_n'])
@@ -55,9 +55,10 @@ def classify(permutation=0):
     class1_inds=np.random.permutation(class1_inds)
 
     numOfEqualSubjects=np.min((len(class0_inds),len(class1_inds)))
-    print("Number of subjects per category: "+str(numOfEqualSubjects))
+
     all_inds=np.arange(numOfEqualSubjects)
     splitting_sub=int(numOfEqualSubjects*0.8)
+
 
     X_train1=X[class0_inds[np.arange(splitting_sub)],:]
     X_train2=X[class1_inds[np.arange(splitting_sub)],:]
@@ -81,16 +82,22 @@ def classify(permutation=0):
     variable_modality=np.array([]) # Keeping the indices for each of the updated variable_modality 
     index_variables=np.array([])
 
-
-    #import pdb; pdb.set_trace()
     # Get the indices for each modality and keep only a bunch of variables for each modality
     #modalities_to_include=np.arange(num_of_modality)+1
     #modalities_to_include=np.array([1]);
     #modalities_to_include=np.array([1,2]);
 
+    include_clinical=clinical_data
+    time_window_to_use=timewindow
     
-    #modalities_to_include=np.array([0,1,2]);
-    modalities_to_include=np.array([0]);
+    if include_clinical==0:
+        modalities_to_include=np.array([time_window_to_use]);
+    else:
+        modalities_to_include=np.array([0,time_window_to_use]);
+
+    if time_window_to_use==0:
+        modalities_to_include=np.array([0]);
+
     print("Including modalities:")
     print(modalities_to_include)
     if permutation==1:
@@ -148,44 +155,31 @@ def classify(permutation=0):
     labels_test=np.array((Y_test,1-Y_test)).transpose((1,0,2))
     WW=torch.from_numpy(W_mask.T).float().to(device) # We turn the Weight mask into a PyTorch Tensor to be able to multiply with the weight matrix later on
     x=torch.from_numpy(X_train).float() # The input data
-    y=torch.from_numpy(np.squeeze(labels_train)).float() # The labels
+    y=torch.from_numpy(labels_train).float() # The labels
 
     x_test=torch.from_numpy(X_test).float() # The input data
     y_test=torch.from_numpy(labels_test).float() # The labels
 
     # Binary Cross Entropy Loss
-    #loss_fn=torch.nn.BCELoss()
-    # Mean Square Error Loss function
-    loss_fn=torch.nn.MSELoss()
-    
+    loss_fn=torch.nn.BCELoss()
 
-    
-    
+    # Mean Square Error Loss function
+    #loss_fn=torch.nn.MSELoss()
     # Here we define the model structure:
     # A Linear layer, inputsxoutputs followed by a softmax activation function
-    '''    
     model = torch.nn.Sequential(
         torch.nn.Linear(D_in, np.alen(modalities_to_include)),
         torch.nn.Tanh(),
         torch.nn.Linear(np.alen(modalities_to_include), D_out),
         torch.nn.Softmax(dim=1),
     ).to(device)
-    '''
-    
-    model = torch.nn.Sequential(
-    torch.nn.Linear(D_in, D_out),    
-    torch.nn.Tanh()
-    #torch.nn.Tanh()
-    #torch.nn.Softmax(dim=1)
-    ).to(device)
-
 
     # What optimization algorithm to use, and which ones to optimize and with what parameters
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001, betas=(0.9, 0.999))
 
     # How many samples to use for each training iteration
     # This is the one that introduces speed-up due to paralellization
-    batchsize=22
+    batchsize=10
     sample_range=range(N);
     print("Started training")
     noepochs=1000 # How many epochs to run
@@ -194,7 +188,6 @@ def classify(permutation=0):
 
     samples=range(X_train.shape[0])
 
-    losses=np.zeros(noepochs)
     for epoch in range(noepochs):
         # Get random indices to form the next batch of training data
 
@@ -207,12 +200,10 @@ def classify(permutation=0):
         
         # Compute and print loss. We pass Tensors containing the predicted and true
         # values of y, and the loss function returns a Tensor containing the loss.
-        #import pdb; pdb.set_trace()
         loss = loss_fn(y_pred, y[ind].to(device))
-        losses[epoch]=loss.item()
+        
         # Give an update regarding the error every 1000 epochs
         if epoch%10==0 and epoch>0:
-            
             print(epoch, loss.item())
 
         # Zero the gradients before running the backward pass.
@@ -229,15 +220,15 @@ def classify(permutation=0):
         optimizer.step()
         #print(WW.shape)
         
-        #with torch.no_grad():
+        with torch.no_grad():
             #print(model[0].weight.shape)
             #print(WW.shape)
             
-            #model[0].weight=torch.nn.Parameter(model[0].weight*WW)
+            model[0].weight=torch.nn.Parameter(model[0].weight*WW)
             #model[0].weight = (model[0].weight*WW)
-            
-            #print(model[0].weight)
-            
+            '''
+            print(model[0].weight)
+        '''
 
     # See that all the weights where the mask is zero, are zero
     #print(model[0].weight)
@@ -256,16 +247,12 @@ def classify(permutation=0):
     # Print out the accuracy on the test data
     accuracy=np.sum(target.T==predicted)/len(target)*100
     print("Accuracy",accuracy,"%")
-    output_name="result_p"+str(permutation)+"_clinical1_window0"
+    output_name="result_p"+str(permutation)+"_clinical"+str(clinical_data)+"_window"+str(timewindow)
     result_filename="./results/"+output_name+"_"+str(np.random.randint(1000000))+'.mat'
     
-    
-    plt.plot(losses)
-    plt.show()
-    #import pdb; pdb.set_trace()
     sio.savemat(result_filename, {'vect':accuracy})
 
 
 
 if __name__ == '__main__':
-    classify(0);
+    classify(0,1,5);
