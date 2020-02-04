@@ -19,7 +19,7 @@ def make_jobs(command_to_run="python test.py",jobind=1):
     f.write("\n")
     f.write("#SBATCH -t 9:59:59")
     f.write("\n")
-    f.write("#SBATCH --array=1-105")
+    f.write("#SBATCH --array=1-550")
     f.write("\n")
     f.write("#SBATCH -o ./logs/log_"+str(jobind)+"_%a")
     f.write("\n")
