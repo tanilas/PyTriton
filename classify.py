@@ -1,6 +1,6 @@
 import os
 import argparse
-from classify_functions import classify
+from classify_functions import classify, classify_ISC
 
 if not os.path.exists("results"):
     os.makedirs("results")
@@ -19,3 +19,4 @@ print("Permutation chosen: "+str(args.permutation))
 print("Clinical data chosen: "+str(args.clinical_data))
 
 classify(args.permutation)
+classify_ISC(args.permutation)
